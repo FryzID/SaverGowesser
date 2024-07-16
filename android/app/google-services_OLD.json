@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "492428107682",
+    "project_id": "gowesser-36f23",
+    "storage_bucket": "gowesser-36f23.appspot.com"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:492428107682:android:b3dd6890609979cb0edcfb",
+        "android_client_info": {
+          "package_name": "com.example.myapp"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyA-B9HoUlhfCLaSkWp9e3DCuNsAonM7acM"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

@@ -1,0 +1,30 @@
+{
+  "project_info": {
+    "project_number": "621099587060",
+    "firebase_url": "https://savergowes-default-rtdb.asia-southeast1.firebasedatabase.app",
+    "project_id": "savergowes",
+    "storage_bucket": "savergowes.appspot.com"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:621099587060:android:fc2c6987f0daf0a67e55a1",
+        "android_client_info": {
+          "package_name": "com.example.savergowesser"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyCe9Y0VdtLqShidnik-gx-p_Z00Zm7feDI"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
