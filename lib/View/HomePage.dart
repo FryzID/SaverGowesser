@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:math';
 
 import 'package:firebase_database/firebase_database.dart';
 import 'package:flutter_expandable_fab/flutter_expandable_fab.dart';
@@ -9,6 +10,8 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:myapp/constant.dart';
+import 'package:location/location.dart';
+import 'package:geolocator/geolocator.dart';
 
 class HomePage extends StatefulWidget {
   static const _actionTitles = ['Create Post', 'Upload Photo', 'Upload Video'];
@@ -20,8 +23,19 @@ class HomePage extends StatefulWidget {
 
 class _HomePageState extends State<HomePage> {
   final Completer<GoogleMapController> _controller = Completer();
-  static const LatLng location = LatLng(7.17222, 112.46534);
-  static const LatLng destinasi = LatLng(7.1726, 112.48002);
+  static const LatLng location = LatLng(-7.290939, 112.800999);
+  static const LatLng destinasi = LatLng(-7.289564, 112.781629);
+
+  Position? _startPosition;
+  double _totalDistance = 0.0;
+  StreamSubscription<Position>? _positionStream;
+
+  double _speedInKmph = 0.0;
+  Timer? _timer;
+
+  LatLng? currentPosition;
+
+  final locationController = Location();
 
   String getBPM = '0';
 
@@ -49,6 +63,11 @@ class _HomePageState extends State<HomePage> {
   @override
   void initState() {
     super.initState();
+    _startTracking();
+    _startTrackingKM();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      fetchLocationUpdates();
+    });
     DatabaseReference ref = FirebaseDatabase.instance.ref().child('BPM_TEST');
 
     ref.onValue.listen((event) {
@@ -64,6 +83,79 @@ class _HomePageState extends State<HomePage> {
         getBPM = 'Error: $error';
       });
     });
+  }
+
+  void _startTracking() {
+    _timer = Timer.periodic(Duration(seconds: 1), (Timer t) => _getWalkingSpeed());
+  }
+
+  void _startTrackingKM() {
+  final LocationSettings locationSettings = LocationSettings(
+    distanceFilter: 0,
+  );
+
+  DateTime? previousUpdateTime;
+
+  _positionStream = Geolocator.getPositionStream(
+    locationSettings: locationSettings,
+  ).listen((Position position) {
+    if (previousUpdateTime == null ||
+        DateTime.now().difference(previousUpdateTime!) >= Duration(seconds: 1)) {
+      // Only process position updates with a minimum interval of 1 second
+      previousUpdateTime = DateTime.now();
+      if (_startPosition == null) {
+        _startPosition = position;
+      } else {
+        double distance = calculateDistance(
+          _startPosition!.latitude,
+          _startPosition!.longitude,
+          position.latitude,
+          position.longitude,
+        );
+        setState(() {
+          _totalDistance += distance;
+          _startPosition = position;
+        });
+      }
+    }
+  });
+}
+
+double calculateDistance(double startLatitude, double startLongitude, double endLatitude, double endLongitude) {
+    const double earthRadius = 6371.0; // Radius of the Earth in kilometers
+    double dLat = _degreesToRadians(endLatitude - startLatitude);
+    double dLon = _degreesToRadians(endLongitude - startLongitude);
+    double a = 
+        sin(dLat / 2) * sin(dLat / 2) +
+        cos(_degreesToRadians(startLatitude)) * cos(_degreesToRadians(endLatitude)) *
+        sin(dLon / 2) * sin(dLon / 2);
+    double c = 2 * atan2(sqrt(a), sqrt(1 - a));
+    return earthRadius * c; // Distance in kilometers
+  }
+
+  double _degreesToRadians(double degrees) {
+    return degrees * (pi / 180);
+  }
+
+
+
+  Future<void> _getWalkingSpeed() async {
+    Position position = await Geolocator.getCurrentPosition();
+    double speedInMps = position.speed;
+    setState(() {
+      _speedInKmph = speedInMps * 3.6;
+    });
+  }
+
+  @override
+  void dispose() {
+    _timer?.cancel();
+    super.dispose();
+  }
+  @override
+  void disposeKM() {
+    _positionStream?.cancel();
+    super.dispose();
   }
 
   void signUserOut() {
@@ -83,18 +175,8 @@ class _HomePageState extends State<HomePage> {
     }, onError: (error) {
       print('Error: $error');
     });
-    //  ref.onValue.listen((event) {
-    //   getBPM = event.snapshot.value.toString();
-    // });
     return MaterialApp(
         home: Scaffold(
-
-            // appBar: AppBar(
-            //   actions: [
-            //     IconButton(onPressed: signUserOut, icon: Icon(Icons.logout)),
-            //   ],
-            //   title: const Text('Home Page'),
-            // ),
             floatingActionButtonLocation: ExpandableFab.location,
             floatingActionButton: ExpandableFab(
               key: widget.key,
@@ -146,16 +228,21 @@ class _HomePageState extends State<HomePage> {
                             color: Colors.red,
                             width: 5,
                             points: poltlineCoordinates,
-                            ), 
+                          ),
                         },
                         markers: {
+                          Marker(
+                            markerId: MarkerId('posisi'),
+                            icon: BitmapDescriptor.defaultMarker,
+                            position: currentPosition!,
+                          ),
                           const Marker(
                             markerId: MarkerId('location'),
                             icon: BitmapDescriptor.defaultMarker,
                             position: location,
                           ),
                           const Marker(
-                            markerId: MarkerId('location'),
+                            markerId: MarkerId('destinasi'),
                             icon: BitmapDescriptor.defaultMarker,
                             position: destinasi,
                           ),
@@ -201,11 +288,11 @@ class _HomePageState extends State<HomePage> {
                                 ],
                               ),
                             ),
-                            const Positioned(
+                            Positioned(
                               child: Center(
                                 child: Text(
                                   textAlign: TextAlign.center,
-                                  "60\n"
+                                  "${_totalDistance.toStringAsFixed(2)}\n"
                                   "Km/H", // Add line breaks for each character
                                   style: TextStyle(
                                     color: Colors.black,
@@ -257,11 +344,11 @@ class _HomePageState extends State<HomePage> {
                                 ],
                               ),
                             ),
-                            const Positioned(
+                            Positioned(
                               child: Center(
                                 child: Text(
                                   textAlign: TextAlign.center,
-                                  "3\n"
+                                  "$_speedInKmph\n"
                                   "Km", // Add line breaks for each character
                                   style: TextStyle(
                                     color: Colors.black,
@@ -318,6 +405,39 @@ class _HomePageState extends State<HomePage> {
               ],
             )));
   }
+
+  Future<void> fetchLocationUpdates() async {
+    bool serviceEnable;
+    PermissionStatus permissionGranted;
+
+    serviceEnable = await locationController.serviceEnabled();
+    if (serviceEnable) {
+      serviceEnable = await locationController.requestService();
+    } else {
+      return;
+    }
+
+    permissionGranted = await locationController.hasPermission();
+    if (permissionGranted == PermissionStatus.denied) {
+      permissionGranted = await locationController.requestPermission();
+      if (permissionGranted != PermissionStatus.granted) {
+        return;
+      }
+    }
+
+    locationController.onLocationChanged.listen((LocationData currentLocation) {
+      if (currentLocation.latitude != null &&
+          currentLocation.longitude != null) {
+        setState(() {
+          currentPosition = LatLng(
+            currentLocation.latitude!,
+            currentLocation.longitude!,
+          );
+        });
+        print(currentPosition!);
+      }
+    });
+  }
 }
 
 class CircleButton extends StatefulWidget {
@@ -365,6 +485,7 @@ class _CircleButtonState extends State<CircleButton> {
     );
   }
 }
+
 
 
 // Widget _buildCircleButton() {
