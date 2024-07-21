@@ -23,8 +23,15 @@ class HomePage extends StatefulWidget {
 
 class _HomePageState extends State<HomePage> {
   final Completer<GoogleMapController> _controller = Completer();
-  static const LatLng location = LatLng(-7.290939, 112.800999);
-  static const LatLng destinasi = LatLng(-7.289564, 112.781629);
+  late GoogleMapController mapController;
+
+  LatLng? location;
+  LatLng? destinasi;
+  bool _showMarker = false;
+  bool _showLocation = false;
+  final LatLng _center = const LatLng(-33.86, 151.20);
+
+  Set<Polyline> _polylines = {};
 
   Position? _startPosition;
   double _totalDistance = 0.0;
@@ -41,24 +48,67 @@ class _HomePageState extends State<HomePage> {
 
   List<LatLng> poltlineCoordinates = [];
 
-  void getPolyPoint() async {
-    PolylinePoints polylinePoints = PolylinePoints();
+  void _onMapCreated(GoogleMapController controller) {
+    mapController = controller;
+  }
 
-    PolylineResult result = await polylinePoints.getRouteBetweenCoordinates(
-      google_api_key,
-      PointLatLng(location.latitude, location.longitude),
-      PointLatLng(destinasi.latitude, destinasi.longitude),
-    );
+  void _toggleMarker() {
+    setState(() {
+      _showMarker = !_showMarker;
+    });
+  }
 
-    if (result.points.isNotEmpty) {
-      result.points.forEach(
-        (PointLatLng point) => poltlineCoordinates.add(
-          LatLng(point.latitude, point.longitude),
-        ),
-      );
-      setState(() {});
+  void _toggleLocation() {
+    setState(() {
+      _showLocation = !_showLocation;
+      _updatePolylines();
+    });
+  }
+
+  void _onLongPress(LatLng position) {
+    setState(() {
+      destinasi = position;
+      _updatePolylines();
+    });
+  }
+
+  void _updatePolylines() {
+    _polylines.clear();
+    if (destinasi != null) {
+      if (_showLocation && location != null) {
+        _polylines.add(Polyline(
+          polylineId: PolylineId('polyline_location_destinasi'),
+          points: [location!, destinasi!],
+          color: Colors.blue,
+        ));
+      } else {
+        _polylines.add(Polyline(
+          polylineId: PolylineId('polyline_posisi_destinasi'),
+          points: [currentPosition!, destinasi!],
+          color: Colors.red,
+        ));
+      }
     }
   }
+
+  // void getPolyPoint() async {
+  //   PolylinePoints polylinePoints = PolylinePoints();
+
+  //   PolylineResult result = await polylinePoints.getRouteBetweenCoordinates(
+  //     google_api_key,
+  //     PointLatLng(location.latitude, location.longitude),
+  //     PointLatLng(destinasi.latitude, destinasi.longitude),
+  //   );
+
+  //   if (result.points.isNotEmpty) {
+  //     result.points.forEach(
+  //       (PointLatLng point) => poltlineCoordinates.add(
+  //         LatLng(point.latitude, point.longitude),
+  //       ),
+  //     );
+  //     setState(() {});
+  //   }
+  // }
 
   @override
   void initState() {
@@ -86,49 +136,53 @@ class _HomePageState extends State<HomePage> {
   }
 
   void _startTracking() {
-    _timer = Timer.periodic(Duration(seconds: 1), (Timer t) => _getWalkingSpeed());
+    _timer =
+        Timer.periodic(Duration(seconds: 1), (Timer t) => _getWalkingSpeed());
   }
 
   void _startTrackingKM() {
-  final LocationSettings locationSettings = LocationSettings(
-    distanceFilter: 0,
-  );
+    final LocationSettings locationSettings = LocationSettings(
+      distanceFilter: 0,
+    );
 
-  DateTime? previousUpdateTime;
+    DateTime? previousUpdateTime;
 
-  _positionStream = Geolocator.getPositionStream(
-    locationSettings: locationSettings,
-  ).listen((Position position) {
-    if (previousUpdateTime == null ||
-        DateTime.now().difference(previousUpdateTime!) >= Duration(seconds: 1)) {
-      // Only process position updates with a minimum interval of 1 second
-      previousUpdateTime = DateTime.now();
-      if (_startPosition == null) {
-        _startPosition = position;
-      } else {
-        double distance = calculateDistance(
-          _startPosition!.latitude,
-          _startPosition!.longitude,
-          position.latitude,
-          position.longitude,
-        );
-        setState(() {
-          _totalDistance += distance;
+    _positionStream = Geolocator.getPositionStream(
+      locationSettings: locationSettings,
+    ).listen((Position position) {
+      if (previousUpdateTime == null ||
+          DateTime.now().difference(previousUpdateTime!) >=
+              Duration(seconds: 1)) {
+        // Only process position updates with a minimum interval of 1 second
+        previousUpdateTime = DateTime.now();
+        if (_startPosition == null) {
           _startPosition = position;
-        });
+        } else {
+          double distance = calculateDistance(
+            _startPosition!.latitude,
+            _startPosition!.longitude,
+            position.latitude,
+            position.longitude,
+          );
+          setState(() {
+            _totalDistance += distance;
+            _startPosition = position;
+          });
+        }
       }
-    }
-  });
-}
+    });
+  }
 
-double calculateDistance(double startLatitude, double startLongitude, double endLatitude, double endLongitude) {
+  double calculateDistance(double startLatitude, double startLongitude,
+      double endLatitude, double endLongitude) {
     const double earthRadius = 6371.0; // Radius of the Earth in kilometers
     double dLat = _degreesToRadians(endLatitude - startLatitude);
     double dLon = _degreesToRadians(endLongitude - startLongitude);
-    double a = 
-        sin(dLat / 2) * sin(dLat / 2) +
-        cos(_degreesToRadians(startLatitude)) * cos(_degreesToRadians(endLatitude)) *
-        sin(dLon / 2) * sin(dLon / 2);
+    double a = sin(dLat / 2) * sin(dLat / 2) +
+        cos(_degreesToRadians(startLatitude)) *
+            cos(_degreesToRadians(endLatitude)) *
+            sin(dLon / 2) *
+            sin(dLon / 2);
     double c = 2 * atan2(sqrt(a), sqrt(1 - a));
     return earthRadius * c; // Distance in kilometers
   }
@@ -136,8 +190,6 @@ double calculateDistance(double startLatitude, double startLongitude, double end
   double _degreesToRadians(double degrees) {
     return degrees * (pi / 180);
   }
-
-
 
   Future<void> _getWalkingSpeed() async {
     Position position = await Geolocator.getCurrentPosition();
@@ -152,6 +204,9 @@ double calculateDistance(double startLatitude, double startLongitude, double end
     _timer?.cancel();
     super.dispose();
   }
+
+  
+
   @override
   void disposeKM() {
     _positionStream?.cancel();
@@ -218,36 +273,42 @@ double calculateDistance(double startLatitude, double startLongitude, double end
                   child: Stack(
                     children: [
                       GoogleMap(
-                        initialCameraPosition: const CameraPosition(
-                          target: location,
-                          zoom: 13,
-                        ),
-                        polylines: {
-                          Polyline(
-                            polylineId: PolylineId('route'),
-                            color: Colors.red,
-                            width: 5,
-                            points: poltlineCoordinates,
-                          ),
-                        },
-                        markers: {
-                          Marker(
-                            markerId: MarkerId('posisi'),
-                            icon: BitmapDescriptor.defaultMarker,
-                            position: currentPosition!,
-                          ),
-                          const Marker(
-                            markerId: MarkerId('location'),
-                            icon: BitmapDescriptor.defaultMarker,
-                            position: location,
-                          ),
-                          const Marker(
-                            markerId: MarkerId('destinasi'),
-                            icon: BitmapDescriptor.defaultMarker,
-                            position: destinasi,
-                          ),
-                        },
-                      ),
+              onMapCreated: _onMapCreated,
+              initialCameraPosition: CameraPosition(
+                target: currentPosition!,
+                zoom: 11.0,
+              ),
+              markers: {
+                Marker(
+                  markerId: MarkerId('posisi'),
+                  icon: BitmapDescriptor.defaultMarker,
+                  position: currentPosition!,
+                  visible: !_showLocation,
+                ),
+                if (_showLocation && location != null)
+                  Marker(
+                    markerId: MarkerId('location'),
+                    icon: BitmapDescriptor.defaultMarker,
+                    position: location!,
+                  ),
+                if (destinasi != null)
+                  Marker(
+                    markerId: MarkerId('destinasi'),
+                    icon: BitmapDescriptor.defaultMarker,
+                    position: destinasi!,
+                  ),
+              },
+              polylines: _polylines,
+              onLongPress: _onLongPress,
+            ),
+            Positioned(
+              bottom: 50,
+              left: 10,
+              child: ElevatedButton(
+                onPressed: _toggleLocation,
+                child: Text(_showLocation ? 'Hide Location' : 'Show Location'),
+              ),
+            ),
                       Positioned(
                         right: 10.0,
                         top: 40.0,
@@ -292,7 +353,7 @@ double calculateDistance(double startLatitude, double startLongitude, double end
                               child: Center(
                                 child: Text(
                                   textAlign: TextAlign.center,
-                                  "${_totalDistance.toStringAsFixed(2)}\n"
+                                  "${_speedInKmph.toStringAsFixed(2)}\n"
                                   "Km/H", // Add line breaks for each character
                                   style: TextStyle(
                                     color: Colors.black,
@@ -348,7 +409,7 @@ double calculateDistance(double startLatitude, double startLongitude, double end
                               child: Center(
                                 child: Text(
                                   textAlign: TextAlign.center,
-                                  "$_speedInKmph\n"
+                                  "${_totalDistance.toStringAsFixed(2)}\n"
                                   "Km", // Add line breaks for each character
                                   style: TextStyle(
                                     color: Colors.black,
