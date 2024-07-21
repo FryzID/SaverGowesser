@@ -6,9 +6,10 @@ import 'package:flutter_expandable_fab/flutter_expandable_fab.dart';
 import 'package:flutter_polyline_points/flutter_polyline_points.dart';
 import 'package:glassmorphism/glassmorphism.dart';
 
+import 'package:google_maps_flutter/google_maps_flutter.dart';
+
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
-import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:myapp/constant.dart';
 import 'package:location/location.dart';
 import 'package:geolocator/geolocator.dart';
@@ -30,8 +31,8 @@ class _HomePageState extends State<HomePage> {
   bool _showMarker = false;
   bool _showLocation = false;
   final LatLng _center = const LatLng(-33.86, 151.20);
-
   Set<Polyline> _polylines = {};
+  PolylinePoints polylinePoints = PolylinePoints();
 
   Position? _startPosition;
   double _totalDistance = 0.0;
@@ -72,23 +73,42 @@ class _HomePageState extends State<HomePage> {
     });
   }
 
-  void _updatePolylines() {
+  Future<void> _updatePolylines() async {
     _polylines.clear();
     if (destinasi != null) {
+      List<LatLng> polylineCoordinates = [];
       if (_showLocation && location != null) {
+        polylineCoordinates = await _getPolylinePoints(location!, destinasi!);
         _polylines.add(Polyline(
           polylineId: PolylineId('polyline_location_destinasi'),
-          points: [location!, destinasi!],
+          points: polylineCoordinates,
           color: Colors.blue,
         ));
       } else {
+        polylineCoordinates = await _getPolylinePoints(currentPosition!, destinasi!);
         _polylines.add(Polyline(
           polylineId: PolylineId('polyline_posisi_destinasi'),
-          points: [currentPosition!, destinasi!],
+          points: polylineCoordinates,
           color: Colors.red,
         ));
       }
     }
+  }
+
+  Future<List<LatLng>> _getPolylinePoints(LatLng start, LatLng end) async {
+    List<LatLng> polylineCoordinates = [];
+    PolylineResult result = await polylinePoints.getRouteBetweenCoordinates(
+      google_api_key,
+      PointLatLng(start.latitude, start.longitude),
+      PointLatLng(end.latitude, end.longitude),
+    );
+
+    if (result.points.isNotEmpty) {
+      result.points.forEach((PointLatLng point) {
+        polylineCoordinates.add(LatLng(point.latitude, point.longitude));
+      });
+    }
+    return polylineCoordinates;
   }
 
   // void getPolyPoint() async {
@@ -300,6 +320,14 @@ class _HomePageState extends State<HomePage> {
               },
               polylines: _polylines,
               onLongPress: _onLongPress,
+            ),
+            Positioned(
+              bottom: 50,
+              left: 10,
+              child: ElevatedButton(
+                onPressed: _toggleLocation,
+                child: Text(_showLocation ? 'Hide Location' : 'Show Location'),
+              ),
             ),
             Positioned(
               bottom: 50,
