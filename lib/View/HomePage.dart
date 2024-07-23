@@ -74,26 +74,31 @@ class _HomePageState extends State<HomePage> {
   }
 
   Future<void> _updatePolylines() async {
-    _polylines.clear();
-    if (destinasi != null) {
-      List<LatLng> polylineCoordinates = [];
-      if (_showLocation && location != null) {
-        polylineCoordinates = await _getPolylinePoints(location!, destinasi!);
-        _polylines.add(Polyline(
-          polylineId: PolylineId('polyline_location_destinasi'),
-          points: polylineCoordinates,
-          color: Colors.blue,
-        ));
-      } else {
-        polylineCoordinates = await _getPolylinePoints(currentPosition!, destinasi!);
-        _polylines.add(Polyline(
-          polylineId: PolylineId('polyline_posisi_destinasi'),
-          points: polylineCoordinates,
-          color: Colors.red,
-        ));
-      }
+  _polylines.clear();
+  if (destinasi != null) {
+    List<LatLng> polylineCoordinates = [];
+    if (_showLocation && location != null) {
+      polylineCoordinates = await _getPolylinePoints(location!, destinasi!);
+      _polylines.add(Polyline(
+        polylineId: PolylineId('polyline_location_destinasi'),
+        points: polylineCoordinates,
+        color: Colors.blue,
+      ));
+    } else {
+      polylineCoordinates = await _getPolylinePoints(currentPosition!, destinasi!);
+      _polylines.add(Polyline(
+        polylineId: PolylineId('polyline_posisi_destinasi'),
+        points: polylineCoordinates,
+        color: Colors.red,
+      ));
+    }
+    // Print the polyline coordinates
+    for (var point in polylineCoordinates) {
+      print('Lat: ${point.latitude}, Lng: ${point.longitude}');
     }
   }
+}
+
 
   Future<List<LatLng>> _getPolylinePoints(LatLng start, LatLng end) async {
     List<LatLng> polylineCoordinates = [];
