@@ -22,6 +22,8 @@ class HomePage extends StatefulWidget {
   _HomePageState createState() => _HomePageState();
 }
 
+final database = FirebaseDatabase.instance.ref();
+
 class _HomePageState extends State<HomePage> {
   final Completer<GoogleMapController> _controller = Completer();
   late GoogleMapController mapController;
@@ -74,31 +76,31 @@ class _HomePageState extends State<HomePage> {
   }
 
   Future<void> _updatePolylines() async {
-  _polylines.clear();
-  if (destinasi != null) {
-    List<LatLng> polylineCoordinates = [];
-    if (_showLocation && location != null) {
-      polylineCoordinates = await _getPolylinePoints(location!, destinasi!);
-      _polylines.add(Polyline(
-        polylineId: PolylineId('polyline_location_destinasi'),
-        points: polylineCoordinates,
-        color: Colors.blue,
-      ));
-    } else {
-      polylineCoordinates = await _getPolylinePoints(currentPosition!, destinasi!);
-      _polylines.add(Polyline(
-        polylineId: PolylineId('polyline_posisi_destinasi'),
-        points: polylineCoordinates,
-        color: Colors.red,
-      ));
-    }
-    // Print the polyline coordinates
-    for (var point in polylineCoordinates) {
-      print('Lat: ${point.latitude}, Lng: ${point.longitude}');
+    _polylines.clear();
+    if (destinasi != null) {
+      List<LatLng> polylineCoordinates = [];
+      if (_showLocation && location != null) {
+        polylineCoordinates = await _getPolylinePoints(location!, destinasi!);
+        _polylines.add(Polyline(
+          polylineId: PolylineId('polyline_location_destinasi'),
+          points: polylineCoordinates,
+          color: Colors.blue,
+        ));
+      } else {
+        polylineCoordinates =
+            await _getPolylinePoints(currentPosition!, destinasi!);
+        _polylines.add(Polyline(
+          polylineId: PolylineId('polyline_posisi_destinasi'),
+          points: polylineCoordinates,
+          color: Colors.red,
+        ));
+      }
+      // Print the polyline coordinates
+      for (var point in polylineCoordinates) {
+        print('Lat: ${point.latitude}, Lng: ${point.longitude}');
+      }
     }
   }
-}
-
 
   Future<List<LatLng>> _getPolylinePoints(LatLng start, LatLng end) async {
     List<LatLng> polylineCoordinates = [];
@@ -116,25 +118,6 @@ class _HomePageState extends State<HomePage> {
     return polylineCoordinates;
   }
 
-  // void getPolyPoint() async {
-  //   PolylinePoints polylinePoints = PolylinePoints();
-
-  //   PolylineResult result = await polylinePoints.getRouteBetweenCoordinates(
-  //     google_api_key,
-  //     PointLatLng(location.latitude, location.longitude),
-  //     PointLatLng(destinasi.latitude, destinasi.longitude),
-  //   );
-
-  //   if (result.points.isNotEmpty) {
-  //     result.points.forEach(
-  //       (PointLatLng point) => poltlineCoordinates.add(
-  //         LatLng(point.latitude, point.longitude),
-  //       ),
-  //     );
-  //     setState(() {});
-  //   }
-  // }
-
   @override
   void initState() {
     super.initState();
@@ -143,7 +126,9 @@ class _HomePageState extends State<HomePage> {
     WidgetsBinding.instance.addPostFrameCallback((_) {
       fetchLocationUpdates();
     });
-    DatabaseReference ref = FirebaseDatabase.instance.ref().child('BPM_TEST');
+    DatabaseReference ref = FirebaseDatabase.instance.ref().child('bpm');
+
+    final Speed = database.child('Speed/');
 
     ref.onValue.listen((event) {
       setState(() {
@@ -190,7 +175,9 @@ class _HomePageState extends State<HomePage> {
             position.longitude,
           );
           setState(() {
+            
             _totalDistance += distance;
+            database.update({'Distance': _totalDistance});
             _startPosition = position;
           });
         }
@@ -217,6 +204,9 @@ class _HomePageState extends State<HomePage> {
   }
 
   Future<void> _getWalkingSpeed() async {
+
+    
+    database.update({'Speed': _speedInKmph, 'Distance': _totalDistance});
     Position position = await Geolocator.getCurrentPosition();
     double speedInMps = position.speed;
     setState(() {
@@ -229,8 +219,6 @@ class _HomePageState extends State<HomePage> {
     _timer?.cancel();
     super.dispose();
   }
-
-  
 
   @override
   void disposeKM() {
@@ -298,50 +286,54 @@ class _HomePageState extends State<HomePage> {
                   child: Stack(
                     children: [
                       GoogleMap(
-              onMapCreated: _onMapCreated,
-              initialCameraPosition: CameraPosition(
-                target: currentPosition!,
-                zoom: 11.0,
-              ),
-              markers: {
-                Marker(
-                  markerId: MarkerId('posisi'),
-                  icon: BitmapDescriptor.defaultMarker,
-                  position: currentPosition!,
-                  visible: !_showLocation,
-                ),
-                if (_showLocation && location != null)
-                  Marker(
-                    markerId: MarkerId('location'),
-                    icon: BitmapDescriptor.defaultMarker,
-                    position: location!,
-                  ),
-                if (destinasi != null)
-                  Marker(
-                    markerId: MarkerId('destinasi'),
-                    icon: BitmapDescriptor.defaultMarker,
-                    position: destinasi!,
-                  ),
-              },
-              polylines: _polylines,
-              onLongPress: _onLongPress,
-            ),
-            Positioned(
-              bottom: 50,
-              left: 10,
-              child: ElevatedButton(
-                onPressed: _toggleLocation,
-                child: Text(_showLocation ? 'Hide Location' : 'Show Location'),
-              ),
-            ),
-            Positioned(
-              bottom: 50,
-              left: 10,
-              child: ElevatedButton(
-                onPressed: _toggleLocation,
-                child: Text(_showLocation ? 'Hide Location' : 'Show Location'),
-              ),
-            ),
+                        onMapCreated: _onMapCreated,
+                        initialCameraPosition: CameraPosition(
+                          target: currentPosition!,
+                          zoom: 11.0,
+                        ),
+                        markers: {
+                          Marker(
+                            markerId: MarkerId('posisi'),
+                            icon: BitmapDescriptor.defaultMarker,
+                            position: currentPosition!,
+                            visible: !_showLocation,
+                          ),
+                          if (_showLocation && location != null)
+                            Marker(
+                              markerId: MarkerId('location'),
+                              icon: BitmapDescriptor.defaultMarker,
+                              position: location!,
+                            ),
+                          if (destinasi != null)
+                            Marker(
+                              markerId: MarkerId('destinasi'),
+                              icon: BitmapDescriptor.defaultMarker,
+                              position: destinasi!,
+                            ),
+                        },
+                        polylines: _polylines,
+                        onLongPress: _onLongPress,
+                      ),
+                      Positioned(
+                        bottom: 50,
+                        left: 10,
+                        child: ElevatedButton(
+                          onPressed: _toggleLocation,
+                          child: Text(_showLocation
+                              ? 'Hide Location'
+                              : 'Show Location'),
+                        ),
+                      ),
+                      Positioned(
+                        bottom: 50,
+                        left: 10,
+                        child: ElevatedButton(
+                          onPressed: _toggleLocation,
+                          child: Text(_showLocation
+                              ? 'Hide Location'
+                              : 'Show Location'),
+                        ),
+                      ),
                       Positioned(
                         right: 10.0,
                         top: 40.0,
@@ -545,15 +537,18 @@ class _CircleButtonState extends State<CircleButton> {
   bool isTrue = false;
 
   void _toggleButton() {
+    final appOn = database.child('App_on/');
     setState(() {
       isTrue = !isTrue;
     });
 
     if (isTrue) {
       // Do something when true
+      appOn.set(true);
       print('Button is true');
     } else {
       // Do something when false
+      appOn.set(false);
       print('Button is false');
     }
   }
