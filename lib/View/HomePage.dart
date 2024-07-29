@@ -4,6 +4,7 @@ import 'dart:math';
 import 'package:firebase_database/firebase_database.dart';
 import 'package:flutter_expandable_fab/flutter_expandable_fab.dart';
 import 'package:flutter_polyline_points/flutter_polyline_points.dart';
+import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'package:glassmorphism/glassmorphism.dart';
 
 import 'package:google_maps_flutter/google_maps_flutter.dart';
@@ -68,12 +69,12 @@ class _HomePageState extends State<HomePage> {
     });
   }
 
-  void _onLongPress(LatLng position) {
-    setState(() {
-      destinasi = position;
-      _updatePolylines();
-    });
-  }
+  // void _onLongPress(LatLng position) {
+  //   setState(() {
+  //     destinasi = position;
+  //     _updatePolylines();
+  //   });
+  // }
 
   Future<void> _updatePolylines() async {
     _polylines.clear();
@@ -121,8 +122,8 @@ class _HomePageState extends State<HomePage> {
   @override
   void initState() {
     super.initState();
-    _startTracking();
-    _startTrackingKM();
+    // _startTracking();
+    // _startTrackingKM();
     WidgetsBinding.instance.addPostFrameCallback((_) {
       fetchLocationUpdates();
     });
@@ -175,7 +176,6 @@ class _HomePageState extends State<HomePage> {
             position.longitude,
           );
           setState(() {
-            
             _totalDistance += distance;
             database.update({'Distance': _totalDistance});
             _startPosition = position;
@@ -204,8 +204,6 @@ class _HomePageState extends State<HomePage> {
   }
 
   Future<void> _getWalkingSpeed() async {
-
-    
     database.update({'Speed': _speedInKmph, 'Distance': _totalDistance});
     Position position = await Geolocator.getCurrentPosition();
     double speedInMps = position.speed;
@@ -220,7 +218,6 @@ class _HomePageState extends State<HomePage> {
     super.dispose();
   }
 
-  @override
   void disposeKM() {
     _positionStream?.cancel();
     super.dispose();
@@ -289,7 +286,7 @@ class _HomePageState extends State<HomePage> {
                         onMapCreated: _onMapCreated,
                         initialCameraPosition: CameraPosition(
                           target: currentPosition!,
-                          zoom: 11.0,
+                          zoom: 13.0,
                         ),
                         markers: {
                           Marker(
@@ -312,28 +309,28 @@ class _HomePageState extends State<HomePage> {
                             ),
                         },
                         polylines: _polylines,
-                        onLongPress: _onLongPress,
+                        // onLongPress: _onLongPress,
                       ),
-                      Positioned(
-                        bottom: 50,
-                        left: 10,
-                        child: ElevatedButton(
-                          onPressed: _toggleLocation,
-                          child: Text(_showLocation
-                              ? 'Hide Location'
-                              : 'Show Location'),
-                        ),
-                      ),
-                      Positioned(
-                        bottom: 50,
-                        left: 10,
-                        child: ElevatedButton(
-                          onPressed: _toggleLocation,
-                          child: Text(_showLocation
-                              ? 'Hide Location'
-                              : 'Show Location'),
-                        ),
-                      ),
+                      // Positioned(
+                      //   bottom: 50,
+                      //   left: 10,
+                      //   child: ElevatedButton(
+                      //     onPressed: _toggleLocation,
+                      //     child: Text(_showLocation
+                      //         ? 'Hide Location'
+                      //         : 'Show Location'),
+                      //   ),
+                      // ),
+                      // Positioned(
+                      //   bottom: 50,
+                      //   left: 10,
+                      //   child: ElevatedButton(
+                      //     onPressed: _toggleLocation,
+                      //     child: Text(_showLocation
+                      //         ? 'Hide Location'
+                      //         : 'Show Location'),
+                      //   ),
+                      // ),
                       Positioned(
                         right: 10.0,
                         top: 40.0,
@@ -461,25 +458,84 @@ class _HomePageState extends State<HomePage> {
                           mainAxisAlignment: MainAxisAlignment.spaceBetween,
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            Card(
-                              child: Padding(
-                                padding: EdgeInsets.only(
-                                    left: 25, right: 25, top: 16, bottom: 40),
-                                child: Text("$getBPM"),
+                            SizedBox(
+                              width: 120, // Set the desired width
+                              height: 100, // Set the desired height
+                              child: Card(
+                                child: Padding(
+                                  padding: EdgeInsets.only(
+                                      left: 5, right: 5, top: 10, bottom: 10),
+                                  child: Column(
+                                    mainAxisAlignment: MainAxisAlignment.center,
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.center,
+                                    children: [
+                                      Text(
+                                        'BPM',
+                                        style: TextStyle(
+                                          fontWeight: FontWeight.bold,
+                                          // fontSize: 18,
+                                        ),
+                                        textAlign: TextAlign.center,
+                                      ),
+                                      Divider(),
+                                      Text(
+                                        '$getBPM',
+                                        style: TextStyle(
+                                            // fontSize: 16,
+                                            ),
+                                        textAlign: TextAlign.center,
+                                      ),
+                                    ],
+                                  ),
+                                ),
                               ),
                             ),
-                            Card(
-                              child: Padding(
-                                padding: EdgeInsets.only(
-                                    left: 25, right: 25, top: 16, bottom: 40),
-                                child: Text('Card 2'),
+                            // Card(
+                            //   child: Padding(
+                            //     padding: EdgeInsets.only(
+                            //         left: 25, right: 25, top: 10, bottom: 10),
+                            //     child: Text("$getBPM"),
+                            //   ),
+                            // ),
+                            SizedBox(
+                              width: 120, // Set the desired width
+                              height: 100, // Set the desired height
+                              child: Card(
+                                child: Padding(
+                                  padding: EdgeInsets.only(
+                                      left: 5, right: 5, top: 10, bottom: 10),
+                                  child: Column(
+                                    mainAxisAlignment: MainAxisAlignment.center,
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.center,
+                                    children: [
+                                      Text(
+                                        'Max BPM',
+                                        style: TextStyle(
+                                          fontWeight: FontWeight.bold,
+                                          // fontSize: 18,
+                                        ),
+                                        textAlign: TextAlign.center,
+                                      ),
+                                      Divider(),
+                                      Text(
+                                        '200',
+                                        style: TextStyle(
+                                            // fontSize: 16,
+                                            ),
+                                        textAlign: TextAlign.center,
+                                      ),
+                                    ],
+                                  ),
+                                ),
                               ),
-                            ),
+                            )
                           ],
                         ),
                       ),
                       const Padding(
-                        padding: EdgeInsets.only(top: 10),
+                        padding: EdgeInsets.only(top: 20),
                         child: Align(
                           alignment: Alignment.topCenter,
                           child: CircleButton(),
@@ -535,6 +591,8 @@ class CircleButton extends StatefulWidget {
 
 class _CircleButtonState extends State<CircleButton> {
   bool isTrue = false;
+  final homePage =
+      _HomePageState(); // Assuming this is needed for communication
 
   void _toggleButton() {
     final appOn = database.child('App_on/');
@@ -546,34 +604,42 @@ class _CircleButtonState extends State<CircleButton> {
       // Do something when true
       appOn.set(true);
       print('Button is true');
+      homePage._startTracking();
+      homePage._startTrackingKM(); 
     } else {
       // Do something when false
       appOn.set(false);
+      homePage.dispose();
+      homePage.disposeKM();
       print('Button is false');
     }
   }
 
   @override
   Widget build(BuildContext context) {
-    return GestureDetector(
-      onTap: _toggleButton,
-      child: Container(
-        width: 75.0,
-        height: 75.0,
-        decoration: BoxDecoration(
-          color: isTrue ? Colors.green : Colors.red,
-          shape: BoxShape.circle,
-        ),
-        child: Center(
-          child: Text(
-            isTrue ? 'True' : 'False',
-            style: const TextStyle(color: Colors.white, fontSize: 20),
-          ),
-        ),
-      ),
-    );
+          return InkWell(
+            onTap: _toggleButton,
+            splashColor: Colors.blue.withAlpha(30),
+            child: AnimatedContainer(
+              duration: Duration(milliseconds: 300),
+              width: 75.0,
+              height: 75.0,
+              decoration: BoxDecoration(
+                color: isTrue ? Colors.red : Colors.green,
+                shape: BoxShape.circle,
+              ),
+              child: Center(
+                child: FaIcon(
+                  isTrue ? FontAwesomeIcons.times : FontAwesomeIcons.play,
+                  color: Colors.white,
+                  size: 40,
+                ),
+              ),
+            ),
+          );
   }
 }
+
 
 
 
