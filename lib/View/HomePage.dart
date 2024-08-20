@@ -1,6 +1,10 @@
 import 'dart:async';
 import 'dart:math';
 
+import 'package:flutter_local_notifications/flutter_local_notifications.dart';
+import 'package:myapp/notification_service.dart';
+import 'package:rxdart/subjects.dart';
+
 import 'package:firebase_database/firebase_database.dart';
 import 'package:flutter_expandable_fab/flutter_expandable_fab.dart';
 import 'package:flutter_polyline_points/flutter_polyline_points.dart';
@@ -19,6 +23,11 @@ class HomePage extends StatefulWidget {
   static const _actionTitles = ['Create Post', 'Upload Photo', 'Upload Video'];
   HomePage({super.key});
 
+  void notif() async {
+    WidgetsFlutterBinding.ensureInitialized();
+    await NotificationService.init();
+  }
+
   @override
   _HomePageState createState() => _HomePageState();
 }
@@ -28,6 +37,9 @@ final database = FirebaseDatabase.instance.ref();
 class _HomePageState extends State<HomePage> {
   final Completer<GoogleMapController> _controller = Completer();
   late GoogleMapController mapController;
+
+  final _localNotifications = FlutterLocalNotificationsPlugin();
+  final BehaviorSubject<String> behaviorSubject = BehaviorSubject();
 
   LatLng? location;
   LatLng? destinasi;
@@ -43,6 +55,8 @@ class _HomePageState extends State<HomePage> {
 
   double _speedInKmph = 0.0;
   Timer? _timer;
+
+  double bpmsmt = 0;
 
   LatLng? currentPosition;
 
@@ -103,6 +117,30 @@ class _HomePageState extends State<HomePage> {
     }
   }
 
+  // Future<void> initializePlatformNotifications() async {
+  //   const AndroidInitializationSettings initializationSettingsAndroid =
+  //       AndroidInitializationSettings('ic_stat_justwater');
+
+  //   final InitializationSettings initializationSettings =
+  //       InitializationSettings(
+  //     android: initializationSettingsAndroid,
+  //   );
+
+  //   await _localNotifications.initialize(initializationSettings,
+  //       onSelectNotification: selectNotification);
+  // }
+
+  void onDidReceiveLocalNotification(
+      int id, String? title, String? body, String? payload) {
+    print('id $id');
+  }
+
+  void selectNotification(String? payload) {
+    if (payload != null && payload.isNotEmpty) {
+      behaviorSubject.add(payload);
+    }
+  }
+
   Future<List<LatLng>> _getPolylinePoints(LatLng start, LatLng end) async {
     List<LatLng> polylineCoordinates = [];
     PolylineResult result = await polylinePoints.getRouteBetweenCoordinates(
@@ -135,6 +173,14 @@ class _HomePageState extends State<HomePage> {
       setState(() {
         if (event.snapshot.exists) {
           getBPM = event.snapshot.value.toString();
+          int bpmValue = int.tryParse(getBPM) ?? 0;
+          if (bpmValue >= 200) {
+            // initializePlatformNotifications();
+            NotificationService.showInstantNotification(
+              'Detak Jantung Tinggi!',
+              'Kurangi detak intensitas atau kecepatan bersepeda anda',
+            );
+          }
         } else {
           getBPM = 'No data available.';
         }
@@ -234,6 +280,14 @@ class _HomePageState extends State<HomePage> {
     ref.onValue.listen((event) {
       if (event.snapshot.exists) {
         getBPM = event.snapshot.value.toString();
+        int bpmValue = int.tryParse(getBPM) ?? 0;
+        if (bpmValue >= 200) {
+          // initializePlatformNotifications();
+          NotificationService.showInstantNotification(
+              'Detak Jantung Tinggi!',
+              'Kurangi detak intensitas atau kecepatan bersepeda anda',
+            );
+        }
       } else {
         print('No data available.');
       }
@@ -605,7 +659,7 @@ class _CircleButtonState extends State<CircleButton> {
       appOn.set(true);
       print('Button is true');
       homePage._startTracking();
-      homePage._startTrackingKM(); 
+      homePage._startTrackingKM();
     } else {
       // Do something when false
       appOn.set(false);
@@ -617,28 +671,29 @@ class _CircleButtonState extends State<CircleButton> {
 
   @override
   Widget build(BuildContext context) {
-          return InkWell(
-            onTap: _toggleButton,
-            splashColor: Colors.blue.withAlpha(30),
-            child: AnimatedContainer(
-              duration: Duration(milliseconds: 300),
-              width: 75.0,
-              height: 75.0,
-              decoration: BoxDecoration(
-                color: isTrue ? Colors.red : Colors.green,
-                shape: BoxShape.circle,
-              ),
-              child: Center(
-                child: FaIcon(
-                  isTrue ? FontAwesomeIcons.times : FontAwesomeIcons.play,
-                  color: Colors.white,
-                  size: 40,
-                ),
-              ),
-            ),
-          );
+    return InkWell(
+      onTap: _toggleButton,
+      splashColor: Colors.blue.withAlpha(30),
+      child: AnimatedContainer(
+        duration: Duration(milliseconds: 300),
+        width: 75.0,
+        height: 75.0,
+        decoration: BoxDecoration(
+          color: isTrue ? Colors.red : Colors.green,
+          shape: BoxShape.circle,
+        ),
+        child: Center(
+          child: FaIcon(
+            isTrue ? FontAwesomeIcons.times : FontAwesomeIcons.play,
+            color: Colors.white,
+            size: 40,
+          ),
+        ),
+      ),
+    );
   }
 }
+
 
 
 
